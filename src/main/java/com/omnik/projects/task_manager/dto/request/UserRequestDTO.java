@@ -1,22 +1,16 @@
-package com.omnik.projects.task_manager.entities;
+package com.omnik.projects.task_manager.dto.request;
 
 import com.omnik.projects.task_manager.enums.Role;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Set;
-
 @Getter
 @Setter
 @AllArgsConstructor
-public class User {
+public class UserRequestDTO {
     private String username;
     private String firstName;
     private String lastName;
-    private Set<Role> roles;
-
-    public User(String username,String firstName,String lastName){
-        
-    }
+    private Role role;
 }
