@@ -44,6 +44,16 @@ public class DataStore {
         return Collections.unmodifiableList(allTasksList);
     }
 
+    public void addNewUserTask(User user,Task task){
+        userTasks.putIfAbsent(user,new ArrayList<>());
+        userTasks.get(user).add(task);
+        allTasksList.add(task);
+    }
+
+    public Map<Role,Set<Permission>> getAllRolePermissions(){
+        return Collections.unmodifiableMap(rolePermissions);
+    }
+
     public void addNewUser(User user){
         users.add(user);
     }

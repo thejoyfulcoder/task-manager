@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.util.HashSet;
 import java.util.Set;
 
 @Getter
@@ -17,6 +18,9 @@ public class User {
     private Set<Role> roles;
 
     public User(String username,String firstName,String lastName){
-        
+        this.username= username;
+        this.firstName=firstName;
+        this.lastName=lastName;
+        this.roles=new HashSet<Role>();
     }
 }
