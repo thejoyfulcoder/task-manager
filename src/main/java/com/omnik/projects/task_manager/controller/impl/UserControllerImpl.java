@@ -1,6 +1,6 @@
-package com.omnik.projects.task_manager.controller;
+package com.omnik.projects.task_manager.controller.impl;
 
-import com.omnik.projects.task_manager.dto.request.TaskRequestDTO;
+import com.omnik.projects.task_manager.controller.UserController;
 import com.omnik.projects.task_manager.dto.request.UserRequestDTO;
 import com.omnik.projects.task_manager.dto.response.ApiResponseDTO;
 import com.omnik.projects.task_manager.service.UserService;
@@ -9,7 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 @Component
-public class UserControllerImpl implements UserController{
+public class UserControllerImpl implements UserController {
 
     @Autowired
     private UserService userService;
@@ -19,8 +19,4 @@ public class UserControllerImpl implements UserController{
         return ResponseEntity.ok(userService.addUser(requesterUsername,userCreationRequest));
     }
 
-    @Override
-    public ResponseEntity<ApiResponseDTO<?>> createTask(String requesterUsername, TaskRequestDTO taskCreationRequest) {
-        return ResponseEntity.ok(userService.createTask(requesterUsername,taskCreationRequest));
-    }
 }
