@@ -1,7 +1,6 @@
 package com.omnik.projects.task_manager.entities;
 
 import com.omnik.projects.task_manager.enums.Category;
-import com.omnik.projects.task_manager.enums.Priority;
 import com.omnik.projects.task_manager.enums.TaskStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,7 +14,7 @@ import java.util.Date;
 public class Task {
     private String name;
     private String description;
-    private Priority priority;
+    private Integer priority;
     private TaskStatus status;
     private Category category;
     private Date deadline;

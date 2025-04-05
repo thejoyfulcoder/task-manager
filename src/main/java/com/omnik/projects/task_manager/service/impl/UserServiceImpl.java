@@ -8,8 +8,8 @@ import com.omnik.projects.task_manager.entities.User;
 import com.omnik.projects.task_manager.enums.Permission;
 import com.omnik.projects.task_manager.enums.Role;
 import com.omnik.projects.task_manager.exceptions.PermissionDenialException;
+import com.omnik.projects.task_manager.exceptions.UserAlreadyExistsException;
 import com.omnik.projects.task_manager.exceptions.UserNotFoundException;
-import com.omnik.projects.task_manager.exceptions.UsernameAlreadyExistsException;
 import com.omnik.projects.task_manager.service.UserService;
 import com.omnik.projects.task_manager.storage.DataStore;
 import lombok.RequiredArgsConstructor;
@@ -31,14 +31,13 @@ public class UserServiceImpl implements UserService {
           validateUser(requesterUsername,Permission.Create_User);
           User newUser = new User(userCreationRequest.getUsername(),userCreationRequest.getLastName(),userCreationRequest.getLastName());
           newUser.getRoles().add(userCreationRequest.getRole());
-          dataStore.addUsername(newUser.getUsername());
           dataStore.addNewUser(newUser);
           return new ApiResponseDTO<>(HttpStatus.OK,"User created successfully",false);
         }catch (PermissionDenialException e){
             return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
         }catch (UserNotFoundException nfe){
             return new ApiResponseDTO<>(HttpStatus.NOT_FOUND, nfe.getMessage(),true);
-        }catch (UsernameAlreadyExistsException e){
+        }catch (UserAlreadyExistsException e){
             return new ApiResponseDTO<>(HttpStatus.CONFLICT,e.getMessage(),true);
         } catch (Exception e){
              return new ApiResponseDTO<>(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage(),true);
@@ -77,6 +76,25 @@ public class UserServiceImpl implements UserService {
             Task task = new Task(taskCreationRequest.getName(),taskCreationRequest.getDescription(),taskCreationRequest.getPriority(),
                     taskCreationRequest.getStatus(),taskCreationRequest.getCategory(),taskCreationRequest.getDeadline());
             dataStore.addNewUserTask(userFromDataStore,task);
+            return new ApiResponseDTO<>(HttpStatus.OK,"User task added successfully",false);
+        }catch (PermissionDenialException e){
+            return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
+        }catch (UserNotFoundException nfe){
+            return new ApiResponseDTO<>(HttpStatus.NOT_FOUND, nfe.getMessage(),true);
+        }catch (Exception e){
+            return new ApiResponseDTO<>(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage(),true);
+        }
+    }
+
+
+    @Override
+    public ApiResponseDTO<?> assignTask(String requesterUsername, String assigneeUsername, TaskRequestDTO taskCreationRequest) {
+        try {
+            validateUser(requesterUsername,Permission.Create_Task);
+            User assigneeUser= validateUser(assigneeUsername,null);
+            Task task = new Task(taskCreationRequest.getName(),taskCreationRequest.getDescription(),taskCreationRequest.getPriority(),
+                    taskCreationRequest.getStatus(),taskCreationRequest.getCategory(),taskCreationRequest.getDeadline());
+            dataStore.addNewUserTask(assigneeUser,task);
             return new ApiResponseDTO<>(HttpStatus.OK,"User task added successfully",false);
         }catch (PermissionDenialException e){
             return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);

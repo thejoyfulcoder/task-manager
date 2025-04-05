@@ -12,4 +12,5 @@ public interface UserService {
 
     ApiResponseDTO<?> createTask( String requesterUsername, TaskRequestDTO taskCreationRequest);
 
+    ApiResponseDTO<?> assignTask(String requesterUsername, String assigneeUsername, TaskRequestDTO taskCreationRequest);
 }

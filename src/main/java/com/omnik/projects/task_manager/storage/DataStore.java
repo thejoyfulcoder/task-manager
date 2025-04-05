@@ -4,7 +4,10 @@ import com.omnik.projects.task_manager.entities.Task;
 import com.omnik.projects.task_manager.entities.User;
 import com.omnik.projects.task_manager.enums.Permission;
 import com.omnik.projects.task_manager.enums.Role;
+import com.omnik.projects.task_manager.exceptions.UserAlreadyExistsException;
+import com.omnik.projects.task_manager.exceptions.UserNotFoundException;
 import org.springframework.stereotype.Component;
+
 import java.util.*;
 
 @Component
@@ -15,6 +18,7 @@ public class DataStore {
     private EnumMap<Role,Set<Permission>> rolePermissions= new EnumMap<>(Role.class);;
     private Map<User,List<Task>> userTasks = new HashMap<>();
     private List<Task> allTasksList = new LinkedList<>();
+    private TreeMap<Integer,Set<Task>> priorityGroupedTasks = new TreeMap<>();
 
     public DataStore(){
         HashSet<Permission> adminPermissions = new HashSet<>();
@@ -48,6 +52,14 @@ public class DataStore {
         userTasks.putIfAbsent(user,new ArrayList<>());
         userTasks.get(user).add(task);
         allTasksList.add(task);
+        if(task.getPriority() != null){
+            priorityGroupedTasks.putIfAbsent(task.getPriority(), new HashSet<>());
+            priorityGroupedTasks.get(task.getPriority()).add(task);
+        }
+    }
+
+    public Set<Task> getTasksByPriority(Integer priority){
+        return Collections.unmodifiableSet(priorityGroupedTasks.get(priority));
     }
 
     public Map<Role,Set<Permission>> getAllRolePermissions(){
@@ -55,19 +67,19 @@ public class DataStore {
     }
 
     public void addNewUser(User user){
-        users.add(user);
+        if(usernames.add(user.getUsername())){
+            users.add(user);
+        }else{
+            throw new UserAlreadyExistsException();
+        }
     }
 
     public void removeUser(User user){
-        users.remove(user);
-    }
-
-    public void addUsername(String username){
-        usernames.add(username);
-    }
-
-    public void deleteUsername(String username){
-        usernames.remove(username);
+        if(usernames.remove(user.getUsername())){
+            users.remove(user);
+        }else{
+            throw new UserNotFoundException();
+        }
     }
 
 }
