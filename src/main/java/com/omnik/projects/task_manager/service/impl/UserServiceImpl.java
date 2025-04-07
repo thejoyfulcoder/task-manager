@@ -44,7 +44,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User validateUser(String requesterUsername, Permission permission) {
-        User userFromDataStore = dataStore.getUsers().stream().filter(user -> user.getUsername().equals(requesterUsername)).findFirst().orElse(null);
+        User userFromDataStore = dataStore.getAllUsers().get(requesterUsername);
         if(userFromDataStore==null){
             throw new UserNotFoundException("No user exists for the requester User: "+requesterUsername);
         }

@@ -66,7 +66,8 @@ public class TaskServiceImpl implements TaskService {
 
     public ApiResponseDTO<?> scheduleTask(String taskName){
         try {
-             Task taskFromDataStore = dataStore.getAllTasksList().stream().findAny().orElseThrow(TaskNotFoundException::new);
+             Task taskFromDataStore = dataStore.getAllTasks().get(taskName);
+             if(taskFromDataStore == null) throw new TaskNotFoundException();
              dataStore.scheduleTask(taskFromDataStore);
             return new ApiResponseDTO<>(HttpStatus.OK,"Task scheduled successfully",false);
         }catch (PermissionDenialException e){

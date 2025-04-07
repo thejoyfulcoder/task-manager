@@ -6,7 +6,6 @@ import com.omnik.projects.task_manager.enums.Permission;
 import com.omnik.projects.task_manager.enums.Role;
 import com.omnik.projects.task_manager.exceptions.IllegalOperationException;
 import com.omnik.projects.task_manager.exceptions.UserAlreadyExistsException;
-import com.omnik.projects.task_manager.exceptions.UserNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
@@ -15,24 +14,20 @@ import java.util.*;
 @Component
 public class DataStore {
 
-    private final List<User> users;
-    private final Set<String> usernames;
+    private final Map<String,User> userMap;
     private final EnumMap<Role,Set<Permission>> rolePermissions;
     private final Map<User,List<Task>> userTasks;
-    private final List<Task> allTasksList;
-    private final Set<String> taskNames;
+    private final Map<String,Task> taskMap;
     private final TreeMap<Integer,Set<Task>>priorityGroupedTasks;
     private final PriorityQueue<Task> scheduledTasks;
     private final ArrayDeque<Task> bufferedTasks;
 
     public DataStore(){
-        users = new ArrayList<>();
-        usernames= new HashSet<>();
+        userMap = new HashMap<>();
         rolePermissions= new EnumMap<>(Role.class);
         userTasks = new HashMap<>();
-        allTasksList = new LinkedList<>();
+        taskMap = new HashMap<>();
         priorityGroupedTasks = new TreeMap<>();
-        taskNames = new HashSet<>();
         scheduledTasks = new PriorityQueue<Task>(
                 (t1,t2) -> {
                    int result =Integer.compare(t1.getPriority(),t2.getPriority());
@@ -55,27 +50,25 @@ public class DataStore {
 
         User firstAdminUser = new User("admin","Om","Nikharge");
         firstAdminUser.setRoles(new HashSet<>(Arrays.asList(Role.Admin)));
-        usernames.add("admin");
-        users.add(firstAdminUser);
+        userMap.put(firstAdminUser.getUsername(),firstAdminUser);
     }
 
-    public List<User> getUsers() {
-        return Collections.unmodifiableList(users);
+    public Map<String,User> getAllUsers() {
+        return Collections.unmodifiableMap(userMap);
     }
 
     public Collection<Task> getAllScheduledTasks(){
         return Collections.unmodifiableCollection(scheduledTasks);
     }
 
-    public List<Task> getAllTasksList(){
-        return Collections.unmodifiableList(allTasksList);
+    public Map<String,Task> getAllTasks(){
+        return Collections.unmodifiableMap(taskMap);
     }
 
     public void addNewUserTask(Task task){
-        if(taskNames.add(task.getName())){
+        if(taskMap.putIfAbsent(task.getName(),task) == null){
             userTasks.putIfAbsent(task.getOwner(),new ArrayList<>());
             userTasks.get(task.getOwner()).add(task);
-            allTasksList.add(task);
             if(task.getPriority() != null){
                 priorityGroupedTasks.putIfAbsent(task.getPriority(), new HashSet<>());
                 priorityGroupedTasks.get(task.getPriority()).add(task);
@@ -108,19 +101,8 @@ public class DataStore {
     }
 
     public void addNewUser(User user){
-        if(usernames.add(user.getUsername())){
-            users.add(user);
-        }else{
-            throw new UserAlreadyExistsException();
-        }
+        if(userMap.putIfAbsent(user.getUsername(),user) != null) throw new UserAlreadyExistsException();
     }
 
-    public void removeUser(User user){
-        if(usernames.remove(user.getUsername())){
-            users.remove(user);
-        }else{
-            throw new UserNotFoundException();
-        }
-    }
 
 }
