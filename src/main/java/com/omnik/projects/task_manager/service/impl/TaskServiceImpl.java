@@ -27,7 +27,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public ApiResponseDTO<?> createTask(String requesterUsername, boolean scheduleTask, TaskRequestDTO taskCreationRequest) {
+    public ApiResponseDTO<?> createTask(String requesterUsername, boolean scheduleTask,boolean bufferTask, TaskRequestDTO taskCreationRequest) {
         try {
             User userFromDataStore = userService.validateUser(requesterUsername, Permission.Create_Task);
             Task task = new Task(taskCreationRequest.getName(),taskCreationRequest.getDescription(),taskCreationRequest.getPriority(),
@@ -46,14 +46,18 @@ public class TaskServiceImpl implements TaskService {
 
 
     @Override
-    public ApiResponseDTO<?> assignTask(String requesterUsername, String assigneeUsername, boolean scheduleTask, TaskRequestDTO taskCreationRequest) {
+    public ApiResponseDTO<?> assignTask(String requesterUsername, String assigneeUsername, boolean scheduleTask, boolean bufferTask, TaskRequestDTO taskCreationRequest) {
         try {
             userService.validateUser(requesterUsername,Permission.Create_Task);
             User assigneeUser= userService.validateUser(assigneeUsername,null);
             Task task = new Task(taskCreationRequest.getName(),taskCreationRequest.getDescription(),taskCreationRequest.getPriority(),
                     taskCreationRequest.getStatus(),taskCreationRequest.getCategory(),taskCreationRequest.getDeadline(),assigneeUser);
             dataStore.addNewUserTask(task);
-            if(scheduleTask) dataStore.scheduleTask(task);
+            if(scheduleTask) {
+                dataStore.scheduleTask(task);
+            } else if (bufferTask) {
+                dataStore.bufferTask(task);
+            }
             return new ApiResponseDTO<>(HttpStatus.OK,"User task added successfully",false);
         }catch (PermissionDenialException | IllegalArgumentException e){
             return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
@@ -69,6 +73,22 @@ public class TaskServiceImpl implements TaskService {
              Task taskFromDataStore = dataStore.getAllTasks().get(taskName);
              if(taskFromDataStore == null) throw new TaskNotFoundException();
              dataStore.scheduleTask(taskFromDataStore);
+            return new ApiResponseDTO<>(HttpStatus.OK,"Task scheduled successfully",false);
+        }catch (PermissionDenialException e){
+            return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
+        }catch (UserNotFoundException | TaskNotFoundException nfe){
+            return new ApiResponseDTO<>(HttpStatus.NOT_FOUND, nfe.getMessage(),true);
+        }catch (Exception e){
+            return new ApiResponseDTO<>(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage(),true);
+        }
+    }
+
+    @Override
+    public ApiResponseDTO<?> bufferTask(String taskName) {
+        try {
+            Task taskFromDataStore = dataStore.getAllTasks().get(taskName);
+            if(taskFromDataStore == null) throw new TaskNotFoundException();
+            dataStore.bufferTask(taskFromDataStore);
             return new ApiResponseDTO<>(HttpStatus.OK,"Task scheduled successfully",false);
         }catch (PermissionDenialException e){
             return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);

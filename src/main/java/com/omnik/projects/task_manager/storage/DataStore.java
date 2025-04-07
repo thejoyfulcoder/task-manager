@@ -16,11 +16,11 @@ public class DataStore {
 
     private final Map<String,User> userMap;
     private final EnumMap<Role,Set<Permission>> rolePermissions;
-    private final Map<User,List<Task>> userTasks;
     private final Map<String,Task> taskMap;
+    private final Map<User,List<Task>> userTasks;
     private final TreeMap<Integer,Set<Task>>priorityGroupedTasks;
     private final PriorityQueue<Task> scheduledTasks;
-    private final ArrayDeque<Task> bufferedTasks;
+    private final ArrayDeque<Task> bufferedTasks; //A FIFO queue for storing tasks which are just not well planned
 
     public DataStore(){
         userMap = new HashMap<>();
@@ -79,17 +79,36 @@ public class DataStore {
     }
 
     public void scheduleTask(Task incomingTask){
-        boolean alreadyScheduled =scheduledTasks.stream().anyMatch((t) -> t.getName().equals(incomingTask.getName()));
-        if(incomingTask.getDeadline() == null || incomingTask.getPriority() == null ){ //because the Comparator in the scheduledTasks queue requires non-null values for priority and deadline
-            throw new IllegalOperationException("Deadline and priority is required for a task to be scheduled");
-        } else if (alreadyScheduled) {
-            throw new IllegalOperationException("This task is already scheduled. Please process it!");
-        } else if (incomingTask.getDeadline().isBefore(LocalDate.now())) {
-            throw new IllegalOperationException("Deadline cannot be a past Date");
-        } else if (incomingTask.getOwner() == null) {
-            throw new IllegalOperationException("Owner is mandatory for a task to be scheduled");
+        if(taskMap.get(incomingTask.getName()) != null && taskMap.get(incomingTask.getName()).equals(incomingTask)) {
+            boolean alreadyScheduled =scheduledTasks.stream().anyMatch((t) -> t.getName().equals(incomingTask.getName()));
+            if(incomingTask.getDeadline() == null || incomingTask.getPriority() == null ){ //because the Comparator in the scheduledTasks queue requires non-null values for priority and deadline
+                throw new IllegalOperationException("Deadline and priority is required for a task to be scheduled");
+            } else if (alreadyScheduled) {
+                throw new IllegalOperationException("This task is already scheduled. Please process it!");
+            } else if (incomingTask.getDeadline().isBefore(LocalDate.now())) {
+                throw new IllegalOperationException("Deadline cannot be a past Date");
+            } else if (incomingTask.getOwner() == null) {
+                throw new IllegalOperationException("Owner is mandatory for a task to be scheduled");
+            }
+            scheduledTasks.add(incomingTask);
+        }else {
+            throw new RuntimeException("Internal Server Error");
         }
-        scheduledTasks.add(incomingTask);
+    }
+
+    public void bufferTask(Task incomingTask){
+        if(taskMap.get(incomingTask.getName()) != null && taskMap.get(incomingTask.getName()).equals(incomingTask)){
+            boolean alreadyBuffered = bufferedTasks.contains(incomingTask);
+            if(alreadyBuffered){
+                throw new IllegalOperationException("The task is already buffered. Please plan it further!");
+            }else if(incomingTask.getOwner() != null || incomingTask.getPriority() != null || incomingTask.getDeadline() != null){
+                throw new IllegalOperationException("The buffered task can not have a priority, deadline, or owner defined already!");
+            }
+            bufferedTasks.add(incomingTask);
+        }else {
+            throw new RuntimeException("Internal Server Error");
+        }
+
     }
 
     public Set<Task> getTasksByPriority(Integer priority){

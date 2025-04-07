@@ -17,18 +17,23 @@ public class TaskControllerImpl implements TaskController {
     }
 
     @Override
-    public ResponseEntity<ApiResponseDTO<?>> createTask(String requesterUsername, boolean scheduleTask, TaskRequestDTO taskCreationRequest) {
-        return ResponseEntity.ok(taskService.createTask(requesterUsername,scheduleTask,taskCreationRequest));
+    public ResponseEntity<ApiResponseDTO<?>> createTask(String requesterUsername, boolean scheduleTask,boolean bufferTask, TaskRequestDTO taskCreationRequest) {
+        return ResponseEntity.ok(taskService.createTask(requesterUsername,scheduleTask,bufferTask,taskCreationRequest));
     }
 
     @Override
-    public ResponseEntity<ApiResponseDTO<?>> createTask(String requesterUsername, String assigneeUsername,  boolean scheduleTask,TaskRequestDTO taskCreationRequest) {
-        return ResponseEntity.ok(taskService.assignTask(requesterUsername,assigneeUsername,scheduleTask,taskCreationRequest));
+    public ResponseEntity<ApiResponseDTO<?>> assignTask(String requesterUsername, String assigneeUsername,  boolean scheduleTask, boolean bufferTask,TaskRequestDTO taskCreationRequest) {
+        return ResponseEntity.ok(taskService.assignTask(requesterUsername,assigneeUsername,scheduleTask,bufferTask,taskCreationRequest));
 
     }
 
     @Override
     public ResponseEntity<ApiResponseDTO<?>> scheduleTask(String taskName) {
         return ResponseEntity.ok(taskService.scheduleTask(taskName));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponseDTO<?>> bufferTask(String taskName) {
+        return ResponseEntity.ok(taskService.bufferTask(taskName));
     }
 }
