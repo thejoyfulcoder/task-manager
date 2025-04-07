@@ -17,13 +17,18 @@ public class TaskControllerImpl implements TaskController {
     }
 
     @Override
-    public ResponseEntity<ApiResponseDTO<?>> createTask(String requesterUsername, TaskRequestDTO taskCreationRequest) {
-        return ResponseEntity.ok(taskService.createTask(requesterUsername,taskCreationRequest));
+    public ResponseEntity<ApiResponseDTO<?>> createTask(String requesterUsername, boolean scheduleTask, TaskRequestDTO taskCreationRequest) {
+        return ResponseEntity.ok(taskService.createTask(requesterUsername,scheduleTask,taskCreationRequest));
     }
 
     @Override
-    public ResponseEntity<ApiResponseDTO<?>> createTask(String requesterUsername, String assigneeUsername, TaskRequestDTO taskCreationRequest) {
-        return ResponseEntity.ok(taskService.assignTask(requesterUsername,assigneeUsername,taskCreationRequest));
+    public ResponseEntity<ApiResponseDTO<?>> createTask(String requesterUsername, String assigneeUsername,  boolean scheduleTask,TaskRequestDTO taskCreationRequest) {
+        return ResponseEntity.ok(taskService.assignTask(requesterUsername,assigneeUsername,scheduleTask,taskCreationRequest));
 
+    }
+
+    @Override
+    public ResponseEntity<ApiResponseDTO<?>> scheduleTask(String taskName) {
+        return ResponseEntity.ok(taskService.scheduleTask(taskName));
     }
 }

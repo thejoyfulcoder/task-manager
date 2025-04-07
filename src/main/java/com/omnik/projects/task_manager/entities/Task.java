@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Getter
 @Setter
@@ -17,5 +17,6 @@ public class Task {
     private Integer priority;
     private TaskStatus status;
     private Category category;
-    private Date deadline;
+    private LocalDate deadline;
+    private User owner;
 }

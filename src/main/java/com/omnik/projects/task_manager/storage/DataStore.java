@@ -4,23 +4,46 @@ import com.omnik.projects.task_manager.entities.Task;
 import com.omnik.projects.task_manager.entities.User;
 import com.omnik.projects.task_manager.enums.Permission;
 import com.omnik.projects.task_manager.enums.Role;
+import com.omnik.projects.task_manager.exceptions.IllegalOperationException;
 import com.omnik.projects.task_manager.exceptions.UserAlreadyExistsException;
 import com.omnik.projects.task_manager.exceptions.UserNotFoundException;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDate;
 import java.util.*;
 
 @Component
 public class DataStore {
 
-    private List<User> users = new ArrayList<>();
-    private Set<String> usernames= new HashSet<>();
-    private EnumMap<Role,Set<Permission>> rolePermissions= new EnumMap<>(Role.class);;
-    private Map<User,List<Task>> userTasks = new HashMap<>();
-    private List<Task> allTasksList = new LinkedList<>();
-    private TreeMap<Integer,Set<Task>> priorityGroupedTasks = new TreeMap<>();
+    private final List<User> users;
+    private final Set<String> usernames;
+    private final EnumMap<Role,Set<Permission>> rolePermissions;
+    private final Map<User,List<Task>> userTasks;
+    private final List<Task> allTasksList;
+    private final Set<String> taskNames;
+    private final TreeMap<Integer,Set<Task>>priorityGroupedTasks;
+    private final PriorityQueue<Task> scheduledTasks;
+    private final ArrayDeque<Task> bufferedTasks;
 
     public DataStore(){
+        users = new ArrayList<>();
+        usernames= new HashSet<>();
+        rolePermissions= new EnumMap<>(Role.class);
+        userTasks = new HashMap<>();
+        allTasksList = new LinkedList<>();
+        priorityGroupedTasks = new TreeMap<>();
+        taskNames = new HashSet<>();
+        scheduledTasks = new PriorityQueue<Task>(
+                (t1,t2) -> {
+                   int result =Integer.compare(t1.getPriority(),t2.getPriority());
+                   if(result == 0) {
+                       return t1.getDeadline().compareTo(t2.getDeadline());
+                   }
+                   return result;
+                }
+        );
+        bufferedTasks = new ArrayDeque<>();
+
         HashSet<Permission> adminPermissions = new HashSet<>();
         adminPermissions.add(Permission.Create_Task);
         adminPermissions.add(Permission.Assign_Task);
@@ -40,22 +63,40 @@ public class DataStore {
         return Collections.unmodifiableList(users);
     }
 
-    public Set<String> getUsernames() {
-        return Collections.unmodifiableSet(usernames);
+    public Collection<Task> getAllScheduledTasks(){
+        return Collections.unmodifiableCollection(scheduledTasks);
     }
 
     public List<Task> getAllTasksList(){
         return Collections.unmodifiableList(allTasksList);
     }
 
-    public void addNewUserTask(User user,Task task){
-        userTasks.putIfAbsent(user,new ArrayList<>());
-        userTasks.get(user).add(task);
-        allTasksList.add(task);
-        if(task.getPriority() != null){
-            priorityGroupedTasks.putIfAbsent(task.getPriority(), new HashSet<>());
-            priorityGroupedTasks.get(task.getPriority()).add(task);
+    public void addNewUserTask(Task task){
+        if(taskNames.add(task.getName())){
+            userTasks.putIfAbsent(task.getOwner(),new ArrayList<>());
+            userTasks.get(task.getOwner()).add(task);
+            allTasksList.add(task);
+            if(task.getPriority() != null){
+                priorityGroupedTasks.putIfAbsent(task.getPriority(), new HashSet<>());
+                priorityGroupedTasks.get(task.getPriority()).add(task);
+            }
+        }else {
+            throw new IllegalOperationException("A Task already exists with the passed task name");
         }
+    }
+
+    public void scheduleTask(Task incomingTask){
+        boolean alreadyScheduled =scheduledTasks.stream().anyMatch((t) -> t.getName().equals(incomingTask.getName()));
+        if(incomingTask.getDeadline() == null || incomingTask.getPriority() == null ){ //because the Comparator in the scheduledTasks queue requires non-null values for priority and deadline
+            throw new IllegalOperationException("Deadline and priority is required for a task to be scheduled");
+        } else if (alreadyScheduled) {
+            throw new IllegalOperationException("This task is already scheduled. Please process it!");
+        } else if (incomingTask.getDeadline().isBefore(LocalDate.now())) {
+            throw new IllegalOperationException("Deadline cannot be a past Date");
+        } else if (incomingTask.getOwner() == null) {
+            throw new IllegalOperationException("Owner is mandatory for a task to be scheduled");
+        }
+        scheduledTasks.add(incomingTask);
     }
 
     public Set<Task> getTasksByPriority(Integer priority){

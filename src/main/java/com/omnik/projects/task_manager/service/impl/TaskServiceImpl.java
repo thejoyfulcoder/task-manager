@@ -5,7 +5,9 @@ import com.omnik.projects.task_manager.dto.response.ApiResponseDTO;
 import com.omnik.projects.task_manager.entities.Task;
 import com.omnik.projects.task_manager.entities.User;
 import com.omnik.projects.task_manager.enums.Permission;
+import com.omnik.projects.task_manager.exceptions.IllegalOperationException;
 import com.omnik.projects.task_manager.exceptions.PermissionDenialException;
+import com.omnik.projects.task_manager.exceptions.TaskNotFoundException;
 import com.omnik.projects.task_manager.exceptions.UserNotFoundException;
 import com.omnik.projects.task_manager.service.TaskService;
 import com.omnik.projects.task_manager.service.UserService;
@@ -25,14 +27,15 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public ApiResponseDTO<?> createTask(String requesterUsername, TaskRequestDTO taskCreationRequest) {
+    public ApiResponseDTO<?> createTask(String requesterUsername, boolean scheduleTask, TaskRequestDTO taskCreationRequest) {
         try {
             User userFromDataStore = userService.validateUser(requesterUsername, Permission.Create_Task);
             Task task = new Task(taskCreationRequest.getName(),taskCreationRequest.getDescription(),taskCreationRequest.getPriority(),
-                    taskCreationRequest.getStatus(),taskCreationRequest.getCategory(),taskCreationRequest.getDeadline());
-            dataStore.addNewUserTask(userFromDataStore,task);
+                    taskCreationRequest.getStatus(),taskCreationRequest.getCategory(),taskCreationRequest.getDeadline(),userFromDataStore);
+            dataStore.addNewUserTask(task);
+            if(scheduleTask)dataStore.scheduleTask(task);
             return new ApiResponseDTO<>(HttpStatus.OK,"User task added successfully",false);
-        }catch (PermissionDenialException e){
+        }catch (PermissionDenialException | IllegalOperationException e){
             return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
         }catch (UserNotFoundException nfe){
             return new ApiResponseDTO<>(HttpStatus.NOT_FOUND, nfe.getMessage(),true);
@@ -43,15 +46,16 @@ public class TaskServiceImpl implements TaskService {
 
 
     @Override
-    public ApiResponseDTO<?> assignTask(String requesterUsername, String assigneeUsername, TaskRequestDTO taskCreationRequest) {
+    public ApiResponseDTO<?> assignTask(String requesterUsername, String assigneeUsername, boolean scheduleTask, TaskRequestDTO taskCreationRequest) {
         try {
             userService.validateUser(requesterUsername,Permission.Create_Task);
             User assigneeUser= userService.validateUser(assigneeUsername,null);
             Task task = new Task(taskCreationRequest.getName(),taskCreationRequest.getDescription(),taskCreationRequest.getPriority(),
-                    taskCreationRequest.getStatus(),taskCreationRequest.getCategory(),taskCreationRequest.getDeadline());
-            dataStore.addNewUserTask(assigneeUser,task);
+                    taskCreationRequest.getStatus(),taskCreationRequest.getCategory(),taskCreationRequest.getDeadline(),assigneeUser);
+            dataStore.addNewUserTask(task);
+            if(scheduleTask) dataStore.scheduleTask(task);
             return new ApiResponseDTO<>(HttpStatus.OK,"User task added successfully",false);
-        }catch (PermissionDenialException e){
+        }catch (PermissionDenialException | IllegalArgumentException e){
             return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
         }catch (UserNotFoundException nfe){
             return new ApiResponseDTO<>(HttpStatus.NOT_FOUND, nfe.getMessage(),true);
@@ -60,13 +64,14 @@ public class TaskServiceImpl implements TaskService {
         }
     }
 
-    public ApiResponseDTO<?> scheduleTask(){
+    public ApiResponseDTO<?> scheduleTask(String taskName){
         try {
-
-            return new ApiResponseDTO<>(HttpStatus.OK,"User task added successfully",false);
+             Task taskFromDataStore = dataStore.getAllTasksList().stream().findAny().orElseThrow(TaskNotFoundException::new);
+             dataStore.scheduleTask(taskFromDataStore);
+            return new ApiResponseDTO<>(HttpStatus.OK,"Task scheduled successfully",false);
         }catch (PermissionDenialException e){
             return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
-        }catch (UserNotFoundException nfe){
+        }catch (UserNotFoundException | TaskNotFoundException nfe){
             return new ApiResponseDTO<>(HttpStatus.NOT_FOUND, nfe.getMessage(),true);
         }catch (Exception e){
             return new ApiResponseDTO<>(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage(),true);

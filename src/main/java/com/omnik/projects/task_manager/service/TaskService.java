@@ -7,9 +7,10 @@ import org.springframework.stereotype.Service;
 @Service
 public interface TaskService {
 
-    ApiResponseDTO<?> createTask(String requesterUsername, TaskRequestDTO taskCreationRequest);
+    ApiResponseDTO<?> createTask(String requesterUsername, boolean scheduleTask,TaskRequestDTO taskCreationRequest);
 
-    ApiResponseDTO<?> assignTask(String requesterUsername, String assigneeUsername, TaskRequestDTO taskCreationRequest);
+    ApiResponseDTO<?> assignTask(String requesterUsername, String assigneeUsername, boolean scheduleTask, TaskRequestDTO taskCreationRequest);
 
+    ApiResponseDTO<?> scheduleTask(String taskName);
 
 }

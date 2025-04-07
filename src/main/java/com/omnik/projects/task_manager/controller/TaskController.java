@@ -10,9 +10,12 @@ import org.springframework.web.bind.annotation.*;
 public interface TaskController {
 
     @PostMapping("/create-new/{requester-username}")
-    ResponseEntity<ApiResponseDTO<?>> createTask(@PathVariable("requester-username") String requesterUsername, @RequestBody TaskRequestDTO taskCreationRequest);
+    ResponseEntity<ApiResponseDTO<?>> createTask(@PathVariable("requester-username") String requesterUsername,@RequestParam("scheduleTask")  boolean scheduleTask, @RequestBody TaskRequestDTO taskCreationRequest);
 
     @PostMapping("/assign-new/{requester-username}/{assignee-username}")
-    ResponseEntity<ApiResponseDTO<?>> createTask(@PathVariable("requester-username") String requesterUsername, @PathVariable("assignee-username") String assigneeUsername, @RequestBody TaskRequestDTO taskCreationRequest);
+    ResponseEntity<ApiResponseDTO<?>> createTask(@PathVariable("requester-username") String requesterUsername, @PathVariable("assignee-username") String assigneeUsername, @RequestParam("scheduleTask")  boolean scheduleTask,@RequestBody TaskRequestDTO taskCreationRequest);
+
+    @PostMapping("/schedule/{taskname}")
+    ResponseEntity<ApiResponseDTO<?>> scheduleTask(@PathVariable("taskname") String taskName);
 
 }
