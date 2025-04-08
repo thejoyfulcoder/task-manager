@@ -21,6 +21,9 @@ public interface TaskController {
     ResponseEntity<ApiResponseDTO<?>> scheduleTask(@PathVariable("taskname") String taskName);
 
     @PostMapping("/buffer/{taskname}")
-    ResponseEntity<ApiResponseDTO<?>> bufferTask(@PathVariable("taskname") String taskName);
+    ResponseEntity<ApiResponseDTO<?>> bufferTask(@PathVariable("taskname") String taskName);@PostMapping("/buffer/{taskname}")
+
+    @DeleteMapping("/delete/{requester-username}/{taskname}")
+    ResponseEntity<ApiResponseDTO<?>> deleteTask(@PathVariable("requester-username") String requesterUsername,@PathVariable("taskname") String taskName);
 
 }

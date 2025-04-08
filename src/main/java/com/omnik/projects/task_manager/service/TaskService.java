@@ -9,7 +9,9 @@ public interface TaskService {
 
     ApiResponseDTO<?> createTask(String requesterUsername, boolean scheduleTask,boolean bufferTask,TaskRequestDTO taskCreationRequest);
 
-    ApiResponseDTO<?> assignTask(String requesterUsername, String assigneeUsername, boolean scheduleTask,boolean bufferTask, TaskRequestDTO taskCreationRequest);
+    ApiResponseDTO<?> deleteTask(String requesterUsername, String taskName);
+
+    ApiResponseDTO<?> assignTask(String requesterUsername, String assigneeUsername, boolean scheduleTask, boolean bufferTask, TaskRequestDTO taskCreationRequest);
 
     ApiResponseDTO<?> scheduleTask(String taskName);
 

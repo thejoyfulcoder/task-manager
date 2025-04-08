@@ -2,9 +2,12 @@ package com.omnik.projects.task_manager.storage;
 
 import com.omnik.projects.task_manager.entities.Task;
 import com.omnik.projects.task_manager.entities.User;
+import com.omnik.projects.task_manager.entities.history.Operations;
 import com.omnik.projects.task_manager.enums.Permission;
 import com.omnik.projects.task_manager.enums.Role;
 import com.omnik.projects.task_manager.exceptions.IllegalOperationException;
+import com.omnik.projects.task_manager.exceptions.RedoStackEmptyException;
+import com.omnik.projects.task_manager.exceptions.UndoStackEmptyException;
 import com.omnik.projects.task_manager.exceptions.UserAlreadyExistsException;
 import org.springframework.stereotype.Component;
 
@@ -18,11 +21,15 @@ public class DataStore {
     private final EnumMap<Role,Set<Permission>> rolePermissions;
     private final Map<String,Task> taskMap;
     private final Map<User,List<Task>> userTasks;
-    private final TreeMap<Integer,Set<Task>>priorityGroupedTasks;
+    private final TreeMap<Integer,HashSet<Task>>priorityGroupedTasks;
     private final PriorityQueue<Task> scheduledTasks;
     private final ArrayDeque<Task> bufferedTasks; //A FIFO queue for storing tasks which are just not well planned
+    private final ArrayDeque<Operations> undoStack;
+    private final ArrayDeque<Operations> redoStack;
 
-    public DataStore(){
+    public DataStore(ArrayDeque<Operations> undoStack, ArrayDeque<Operations> redoStack){
+        this.undoStack = new ArrayDeque<Operations>();
+        this.redoStack = new ArrayDeque<Operations>();
         userMap = new HashMap<>();
         rolePermissions= new EnumMap<>(Role.class);
         userTasks = new HashMap<>();
@@ -61,20 +68,74 @@ public class DataStore {
         return Collections.unmodifiableCollection(scheduledTasks);
     }
 
+    public Collection<Task> getAllBufferedTasks(){
+        return Collections.unmodifiableCollection(bufferedTasks);
+    }
+
     public Map<String,Task> getAllTasks(){
         return Collections.unmodifiableMap(taskMap);
     }
 
     public void addNewUserTask(Task task){
         if(taskMap.putIfAbsent(task.getName(),task) == null){
-            userTasks.putIfAbsent(task.getOwner(),new ArrayList<>());
-            userTasks.get(task.getOwner()).add(task);
+            if(task.getOwner() != null){
+                userTasks.putIfAbsent(task.getOwner(),new ArrayList<>());
+                userTasks.get(task.getOwner()).add(task);
+            }
             if(task.getPriority() != null){
                 priorityGroupedTasks.putIfAbsent(task.getPriority(), new HashSet<>());
                 priorityGroupedTasks.get(task.getPriority()).add(task);
             }
         }else {
             throw new IllegalOperationException("A Task already exists with the passed task name");
+        }
+    }
+
+    public void addNewOperationToUndoStack(Operations operation){
+        if(operation != null){
+            undoStack.push(operation);
+        }
+    }
+
+    public void addNewOperationToRedoStack(Operations operation){
+        if(operation != null){
+            redoStack.push(operation);
+        }
+    }
+
+    public Operations popOperationToUndo(){
+        try {
+            return undoStack.pop();
+        }catch (NoSuchElementException e){
+            throw new UndoStackEmptyException();
+        }
+    }
+
+    public Operations popOperationToRedo(){
+        try {
+            return redoStack.pop();
+        }catch (NoSuchElementException e){
+            throw new RedoStackEmptyException();
+        }
+    }
+
+    public void deleteTask(Task task){
+        if(taskMap.containsKey(task.getName())){
+            if(task.getOwner() != null){
+                List<Task> taskMapping =  userTasks.remove(task.getOwner());
+                if(taskMapping == null){
+                    throw new RuntimeException("Internal Server Error! the task has owner defined but there is no corresponding mapping of it in the userTasks");
+                }
+            }
+            HashSet<Task> tasksForThisPriority = (HashSet<Task>) priorityGroupedTasks.get(task.getPriority());
+            if(tasksForThisPriority != null){
+                tasksForThisPriority.remove(task);
+            }
+            scheduledTasks.remove(task);
+            bufferedTasks.remove(task);
+            taskMap.remove(task.getName());
+        }else{
+            throw new RuntimeException("Internal Server Error!");
         }
     }
 
