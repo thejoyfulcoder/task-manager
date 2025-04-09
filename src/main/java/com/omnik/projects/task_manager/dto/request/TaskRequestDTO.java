@@ -1,7 +1,6 @@
 package com.omnik.projects.task_manager.dto.request;
 
 import com.omnik.projects.task_manager.enums.Category;
-import com.omnik.projects.task_manager.enums.TaskStatus;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -15,7 +14,6 @@ public class TaskRequestDTO {
     private String name;
     private String description;
     private Integer priority;
-    private TaskStatus status;
     private Category category;
     private LocalDate deadline;
 }

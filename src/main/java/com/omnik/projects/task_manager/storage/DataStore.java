@@ -5,6 +5,7 @@ import com.omnik.projects.task_manager.entities.User;
 import com.omnik.projects.task_manager.entities.history.Operations;
 import com.omnik.projects.task_manager.enums.Permission;
 import com.omnik.projects.task_manager.enums.Role;
+import com.omnik.projects.task_manager.enums.TaskStatus;
 import com.omnik.projects.task_manager.exceptions.IllegalOperationException;
 import com.omnik.projects.task_manager.exceptions.RedoStackEmptyException;
 import com.omnik.projects.task_manager.exceptions.UndoStackEmptyException;
@@ -26,14 +27,17 @@ public class DataStore {
     private final ArrayDeque<Task> bufferedTasks; //A FIFO queue for storing tasks which are just not well planned
     private final ArrayDeque<Operations> undoStack;
     private final ArrayDeque<Operations> redoStack;
+    private final Map<Task,Set<Task>> dependentTasks;
 
-    public DataStore(ArrayDeque<Operations> undoStack, ArrayDeque<Operations> redoStack){
+    public DataStore(ArrayDeque<Operations> undoStack, ArrayDeque<Operations> redoStack, Map<Task, Set<Task>> dependentTasks){
+        this.dependentTasks = dependentTasks;
         this.undoStack = new ArrayDeque<Operations>();
         this.redoStack = new ArrayDeque<Operations>();
         userMap = new HashMap<>();
         rolePermissions= new EnumMap<>(Role.class);
         userTasks = new HashMap<>();
         taskMap = new HashMap<>();
+        dependentTasks = new HashMap<>();
         priorityGroupedTasks = new TreeMap<>();
         scheduledTasks = new PriorityQueue<Task>(
                 (t1,t2) -> {
@@ -68,6 +72,8 @@ public class DataStore {
         return Collections.unmodifiableCollection(scheduledTasks);
     }
 
+
+
     public Collection<Task> getAllBufferedTasks(){
         return Collections.unmodifiableCollection(bufferedTasks);
     }
@@ -94,6 +100,7 @@ public class DataStore {
     public void addNewOperationToUndoStack(Operations operation){
         if(operation != null){
             undoStack.push(operation);
+            redoStack.clear();
         }
     }
 
@@ -119,21 +126,21 @@ public class DataStore {
         }
     }
 
-    public void deleteTask(Task task){
-        if(taskMap.containsKey(task.getName())){
-            if(task.getOwner() != null){
-                List<Task> taskMapping =  userTasks.remove(task.getOwner());
+    public void deleteTask(Task incomingTask){
+        if(taskMap.get(incomingTask.getName()) != null && taskMap.get(incomingTask.getName()).equals(incomingTask)){
+            if(incomingTask.getOwner() != null){
+                List<Task> taskMapping =  userTasks.remove(incomingTask.getOwner());
                 if(taskMapping == null){
                     throw new RuntimeException("Internal Server Error! the task has owner defined but there is no corresponding mapping of it in the userTasks");
                 }
             }
-            HashSet<Task> tasksForThisPriority = (HashSet<Task>) priorityGroupedTasks.get(task.getPriority());
+            HashSet<Task> tasksForThisPriority = priorityGroupedTasks.get(incomingTask.getPriority());
             if(tasksForThisPriority != null){
-                tasksForThisPriority.remove(task);
+                tasksForThisPriority.remove(incomingTask);
             }
-            scheduledTasks.remove(task);
-            bufferedTasks.remove(task);
-            taskMap.remove(task.getName());
+            scheduledTasks.remove(incomingTask);
+            bufferedTasks.remove(incomingTask);
+            taskMap.remove(incomingTask.getName());
         }else{
             throw new RuntimeException("Internal Server Error!");
         }
@@ -141,16 +148,19 @@ public class DataStore {
 
     public void scheduleTask(Task incomingTask){
         if(taskMap.get(incomingTask.getName()) != null && taskMap.get(incomingTask.getName()).equals(incomingTask)) {
-            boolean alreadyScheduled =scheduledTasks.stream().anyMatch((t) -> t.getName().equals(incomingTask.getName()));
-            if(incomingTask.getDeadline() == null || incomingTask.getPriority() == null ){ //because the Comparator in the scheduledTasks queue requires non-null values for priority and deadline
-                throw new IllegalOperationException("Deadline and priority is required for a task to be scheduled");
-            } else if (alreadyScheduled) {
-                throw new IllegalOperationException("This task is already scheduled. Please process it!");
-            } else if (incomingTask.getDeadline().isBefore(LocalDate.now())) {
-                throw new IllegalOperationException("Deadline cannot be a past Date");
-            } else if (incomingTask.getOwner() == null) {
+            if (!incomingTask.getStatus().equals(TaskStatus.Created)) {
+                throw new IllegalOperationException("Invalid Request!. Only Tasks with status 'Created' can be scheduled.");
+            }
+            else if(incomingTask.getDeadline() == null || incomingTask.getPriority() == null ){ //because the Comparator in the scheduledTasks queue requires non-null values for priority and deadline
+                throw new IllegalOperationException("Deadline and priority is required for a task to be scheduled!");
+            }
+            else if (incomingTask.getDeadline().isBefore(LocalDate.now())) {
+                throw new IllegalOperationException("Deadline cannot be a past Date!");
+            }
+            else if (incomingTask.getOwner() == null) {
                 throw new IllegalOperationException("Owner is mandatory for a task to be scheduled");
             }
+            incomingTask.setStatus(TaskStatus.Scheduled);
             scheduledTasks.add(incomingTask);
         }else {
             throw new RuntimeException("Internal Server Error");
@@ -159,12 +169,14 @@ public class DataStore {
 
     public void bufferTask(Task incomingTask){
         if(taskMap.get(incomingTask.getName()) != null && taskMap.get(incomingTask.getName()).equals(incomingTask)){
-            boolean alreadyBuffered = bufferedTasks.contains(incomingTask);
-            if(alreadyBuffered){
+            if(incomingTask.getStatus().ordinal() >= TaskStatus.Scheduled.ordinal()){
+                throw new IllegalOperationException("The task is already scheduled!");
+            } else if (incomingTask.getStatus().equals(TaskStatus.Buffered)) {
                 throw new IllegalOperationException("The task is already buffered. Please plan it further!");
-            }else if(incomingTask.getOwner() != null || incomingTask.getPriority() != null || incomingTask.getDeadline() != null){
-                throw new IllegalOperationException("The buffered task can not have a priority, deadline, or owner defined already!");
+            } else if(incomingTask.getPriority() != null || incomingTask.getDeadline() != null){
+                throw new IllegalOperationException("The buffered task can not have a priority or a deadline! If it has, consider scheduling it.");
             }
+            incomingTask.setStatus(TaskStatus.Buffered);
             bufferedTasks.add(incomingTask);
         }else {
             throw new RuntimeException("Internal Server Error");
@@ -185,4 +197,11 @@ public class DataStore {
     }
 
 
+    public Task processTask(Task incomingTask) {
+           if(scheduledTasks.peek() != null && scheduledTasks.peek().equals(incomingTask)){
+               return scheduledTasks.remove();
+           }else {
+               throw new IllegalOperationException("Invalid request! Only high-priority tasks with immediate deadlines from the scheduled list can be processed.");
+           }
+    }
 }

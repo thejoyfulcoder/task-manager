@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/users")
 public interface UserController {
 
-    @PostMapping("/addUser")
-    ResponseEntity<ApiResponseDTO<?>> addUser(@PathVariable("requesterName") String requesterUsername,@RequestBody UserRequestDTO userCreationRequest);
+    @PostMapping("/addUser/{requester-username}")
+    ResponseEntity<ApiResponseDTO<?>> addUser(@PathVariable("requester-username") String requesterUsername,@RequestBody UserRequestDTO userCreationRequest);
 
 }

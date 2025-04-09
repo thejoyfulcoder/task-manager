@@ -6,6 +6,7 @@ import com.omnik.projects.task_manager.entities.Task;
 import com.omnik.projects.task_manager.entities.User;
 import com.omnik.projects.task_manager.entities.history.TaskCreationAndDeletionOperation;
 import com.omnik.projects.task_manager.enums.Permission;
+import com.omnik.projects.task_manager.enums.TaskStatus;
 import com.omnik.projects.task_manager.exceptions.IllegalOperationException;
 import com.omnik.projects.task_manager.exceptions.PermissionDenialException;
 import com.omnik.projects.task_manager.exceptions.TaskNotFoundException;
@@ -32,13 +33,14 @@ public class TaskServiceImpl implements TaskService {
         try {
             User userFromDataStore = userService.validateUser(requesterUsername, Permission.Create_Task);
             Task task = new Task(taskCreationRequest.getName(),taskCreationRequest.getDescription(),taskCreationRequest.getPriority(),
-                    taskCreationRequest.getStatus(),taskCreationRequest.getCategory(),taskCreationRequest.getDeadline(),userFromDataStore);
+                    TaskStatus.Created,taskCreationRequest.getCategory(),taskCreationRequest.getDeadline(),userFromDataStore);
             dataStore.addNewUserTask(task);
             if(scheduleTask) {
                 dataStore.scheduleTask(task);
             } else if (bufferTask) {
                 dataStore.bufferTask(task);
             }
+            //Adding to the undo stack
             dataStore.addNewOperationToUndoStack(new TaskCreationAndDeletionOperation(dataStore,task,scheduleTask,bufferTask,true));
             return new ApiResponseDTO<>(HttpStatus.OK,"User task added successfully",false);
         }catch (PermissionDenialException | IllegalOperationException e){
@@ -76,13 +78,14 @@ public class TaskServiceImpl implements TaskService {
             userService.validateUser(requesterUsername,Permission.Create_Task);
             User assigneeUser= userService.validateUser(assigneeUsername,null);
             Task task = new Task(taskCreationRequest.getName(),taskCreationRequest.getDescription(),taskCreationRequest.getPriority(),
-                    taskCreationRequest.getStatus(),taskCreationRequest.getCategory(),taskCreationRequest.getDeadline(),assigneeUser);
+                    TaskStatus.Created,taskCreationRequest.getCategory(),taskCreationRequest.getDeadline(),assigneeUser);
             dataStore.addNewUserTask(task);
             if(scheduleTask) {
                 dataStore.scheduleTask(task);
             } else if (bufferTask) {
                 dataStore.bufferTask(task);
             }
+            dataStore.addNewOperationToUndoStack(new TaskCreationAndDeletionOperation(dataStore,task,scheduleTask,bufferTask,true));
             return new ApiResponseDTO<>(HttpStatus.OK,"User task added successfully",false);
         }catch (PermissionDenialException | IllegalArgumentException e){
             return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
@@ -114,8 +117,45 @@ public class TaskServiceImpl implements TaskService {
             Task taskFromDataStore = dataStore.getAllTasks().get(taskName);
             if(taskFromDataStore == null) throw new TaskNotFoundException();
             dataStore.bufferTask(taskFromDataStore);
-            return new ApiResponseDTO<>(HttpStatus.OK,"Task scheduled successfully",false);
+            return new ApiResponseDTO<>(HttpStatus.OK,"Task buffered successfully",false);
         }catch (PermissionDenialException e){
+            return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
+        }catch (UserNotFoundException | TaskNotFoundException nfe){
+            return new ApiResponseDTO<>(HttpStatus.NOT_FOUND, nfe.getMessage(),true);
+        }catch (Exception e){
+            return new ApiResponseDTO<>(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage(),true);
+        }
+    }
+
+    @Override
+    public ApiResponseDTO<?> processTask(String requesterUsername, String taskName, TaskStatus status) {
+        try {
+            userService.validateUser(requesterUsername,Permission.Update_Task);
+            Task taskFromDataStore = dataStore.getAllTasks().get(taskName);
+            if(taskFromDataStore == null) throw new TaskNotFoundException();
+            Task taskToBeProcessed =dataStore.processTask(taskFromDataStore);
+            if(!(status == TaskStatus.InProgress || status == TaskStatus.Completed)) throw new IllegalOperationException("Task status can only be updated as 'InProgress' or 'Completed'");
+            taskToBeProcessed.setStatus(status);
+            return new ApiResponseDTO<>(HttpStatus.OK,"Task scheduled successfully",false);
+        }catch (PermissionDenialException | IllegalOperationException e){
+            return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
+        }catch (UserNotFoundException | TaskNotFoundException nfe){
+            return new ApiResponseDTO<>(HttpStatus.NOT_FOUND, nfe.getMessage(),true);
+        }catch (Exception e){
+            return new ApiResponseDTO<>(HttpStatus.INTERNAL_SERVER_ERROR,e.getMessage(),true);
+        }
+    }
+
+    @Override
+    public ApiResponseDTO<?> markAsCompleted(String requesterUsername, String taskName) {
+        try {
+            userService.validateUser(requesterUsername,Permission.Update_Task);
+            Task taskFromDataStore = dataStore.getAllTasks().get(taskName);
+            if(taskFromDataStore == null) throw new TaskNotFoundException();
+            if(taskFromDataStore.getStatus() != TaskStatus.InProgress) throw new IllegalOperationException("Tasks that are only in progress can be marked as completed!");
+            taskFromDataStore.setStatus(TaskStatus.Completed);
+            return new ApiResponseDTO<>(HttpStatus.OK,"Task scheduled successfully",false);
+        }catch (PermissionDenialException | IllegalOperationException e){
             return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
         }catch (UserNotFoundException | TaskNotFoundException nfe){
             return new ApiResponseDTO<>(HttpStatus.NOT_FOUND, nfe.getMessage(),true);

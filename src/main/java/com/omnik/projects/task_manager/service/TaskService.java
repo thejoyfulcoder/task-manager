@@ -2,6 +2,7 @@ package com.omnik.projects.task_manager.service;
 
 import com.omnik.projects.task_manager.dto.request.TaskRequestDTO;
 import com.omnik.projects.task_manager.dto.response.ApiResponseDTO;
+import com.omnik.projects.task_manager.enums.TaskStatus;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,4 +17,8 @@ public interface TaskService {
     ApiResponseDTO<?> scheduleTask(String taskName);
 
     ApiResponseDTO<?> bufferTask(String taskName);
+
+    ApiResponseDTO<?> processTask(String requesterUsername, String taskName, TaskStatus status);
+
+    ApiResponseDTO<?> markAsCompleted(String requesterUsername, String taskName);
 }

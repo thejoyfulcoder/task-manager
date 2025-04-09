@@ -3,6 +3,7 @@ package com.omnik.projects.task_manager.controller.impl;
 import com.omnik.projects.task_manager.controller.TaskController;
 import com.omnik.projects.task_manager.dto.request.TaskRequestDTO;
 import com.omnik.projects.task_manager.dto.response.ApiResponseDTO;
+import com.omnik.projects.task_manager.enums.TaskStatus;
 import com.omnik.projects.task_manager.service.TaskService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -35,6 +36,11 @@ public class TaskControllerImpl implements TaskController {
     @Override
     public ResponseEntity<ApiResponseDTO<?>> bufferTask(String taskName) {
         return ResponseEntity.ok(taskService.bufferTask(taskName));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponseDTO<?>> processTask(String requesterUsername, String taskName, TaskStatus status) {
+        return ResponseEntity.ok(taskService.processTask(requesterUsername,taskName,status));
     }
 
     @Override
