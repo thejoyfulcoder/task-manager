@@ -20,5 +20,5 @@ public interface TaskService {
 
     ApiResponseDTO<?> processTask(String requesterUsername, String taskName, TaskStatus status);
 
-    ApiResponseDTO<?> markAsCompleted(String requesterUsername, String taskName);
+    ApiResponseDTO<?> markCompleted(String requesterUsername, String taskName);
 }

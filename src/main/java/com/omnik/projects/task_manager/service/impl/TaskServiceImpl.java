@@ -147,14 +147,14 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public ApiResponseDTO<?> markAsCompleted(String requesterUsername, String taskName) {
+    public ApiResponseDTO<?> markCompleted(String requesterUsername, String taskName) {
         try {
             userService.validateUser(requesterUsername,Permission.Update_Task);
             Task taskFromDataStore = dataStore.getAllTasks().get(taskName);
             if(taskFromDataStore == null) throw new TaskNotFoundException();
             if(taskFromDataStore.getStatus() != TaskStatus.InProgress) throw new IllegalOperationException("Tasks that are only in progress can be marked as completed!");
             taskFromDataStore.setStatus(TaskStatus.Completed);
-            return new ApiResponseDTO<>(HttpStatus.OK,"Task scheduled successfully",false);
+            return new ApiResponseDTO<>(HttpStatus.OK,"Task marked as completed successfully",false);
         }catch (PermissionDenialException | IllegalOperationException e){
             return new ApiResponseDTO<>(HttpStatus.BAD_REQUEST, e.getMessage(),true);
         }catch (UserNotFoundException | TaskNotFoundException nfe){

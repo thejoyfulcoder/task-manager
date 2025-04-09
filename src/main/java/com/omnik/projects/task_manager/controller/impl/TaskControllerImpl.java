@@ -47,4 +47,9 @@ public class TaskControllerImpl implements TaskController {
     public ResponseEntity<ApiResponseDTO<?>> deleteTask(String requesterUsername, String taskName) {
         return ResponseEntity.ok(taskService.deleteTask(requesterUsername,taskName));
     }
+
+    @Override
+    public ResponseEntity<ApiResponseDTO<?>> markCompleted(String requesterUsername, String taskName) {
+        return ResponseEntity.ok(taskService.markCompleted(requesterUsername,taskName));
+    }
 }
