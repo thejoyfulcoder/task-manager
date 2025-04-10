@@ -1,5 +1,6 @@
 package com.omnik.projects.task_manager.controller;
 
+import com.omnik.projects.task_manager.dto.request.DependencyTasksRequestDTO;
 import com.omnik.projects.task_manager.dto.request.TaskRequestDTO;
 import com.omnik.projects.task_manager.dto.response.ApiResponseDTO;
 import com.omnik.projects.task_manager.enums.TaskStatus;
@@ -32,5 +33,8 @@ public interface TaskController {
 
     @PatchMapping("/complete/{requester-username}/{task-name}")
     ResponseEntity<ApiResponseDTO<?>> markCompleted(@PathVariable("requester-username") String requesterUsername,@PathVariable("task-name") String taskName);
+
+    @PatchMapping("/dependencies/{requester-username}/{task-name}")
+    ResponseEntity<ApiResponseDTO<?>> addDependencyTasks(@PathVariable("requester-username")String requesterUsername, @PathVariable("task-name")String taskName, @RequestBody DependencyTasksRequestDTO dependencyTasks);
 
 }

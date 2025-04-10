@@ -1,6 +1,7 @@
 package com.omnik.projects.task_manager.controller.impl;
 
 import com.omnik.projects.task_manager.controller.TaskController;
+import com.omnik.projects.task_manager.dto.request.DependencyTasksRequestDTO;
 import com.omnik.projects.task_manager.dto.request.TaskRequestDTO;
 import com.omnik.projects.task_manager.dto.response.ApiResponseDTO;
 import com.omnik.projects.task_manager.enums.TaskStatus;
@@ -51,5 +52,10 @@ public class TaskControllerImpl implements TaskController {
     @Override
     public ResponseEntity<ApiResponseDTO<?>> markCompleted(String requesterUsername, String taskName) {
         return ResponseEntity.ok(taskService.markCompleted(requesterUsername,taskName));
+    }
+
+    @Override
+    public ResponseEntity<ApiResponseDTO<?>> addDependencyTasks(String requesterUsername, String taskName, DependencyTasksRequestDTO dependencyTasks) {
+        return ResponseEntity.ok(taskService.addDependencyTasks(requesterUsername,taskName,dependencyTasks));
     }
 }

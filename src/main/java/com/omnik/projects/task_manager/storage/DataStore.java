@@ -150,8 +150,9 @@ public class DataStore {
         if(taskMap.get(incomingTask.getName()) != null && taskMap.get(incomingTask.getName()).equals(incomingTask)) {
             if (!incomingTask.getStatus().equals(TaskStatus.Created)) {
                 throw new IllegalOperationException("Invalid Request!. Only Tasks with status 'Created' can be scheduled.");
-            }
-            else if(incomingTask.getDeadline() == null || incomingTask.getPriority() == null ){ //because the Comparator in the scheduledTasks queue requires non-null values for priority and deadline
+            } else if (!dependenciesCompleted(incomingTask)) {
+                throw new IllegalOperationException("A task cannot be scheduled until all its dependency tasks are completed.");
+            } else if(incomingTask.getDeadline() == null || incomingTask.getPriority() == null ){ //because the Comparator in the scheduledTasks queue requires non-null values for priority and deadline
                 throw new IllegalOperationException("Deadline and priority is required for a task to be scheduled!");
             }
             else if (incomingTask.getDeadline().isBefore(LocalDate.now())) {
@@ -165,6 +166,10 @@ public class DataStore {
         }else {
             throw new RuntimeException("Internal Server Error");
         }
+    }
+
+    private boolean dependenciesCompleted(Task task) {
+        return task.getDependsOn().isEmpty() || task.getDependsOn().stream().allMatch(t -> t.getStatus() == TaskStatus.Completed);
     }
 
     public void bufferTask(Task incomingTask){
@@ -203,5 +208,10 @@ public class DataStore {
            }else {
                throw new IllegalOperationException("Invalid request! Only high-priority tasks with immediate deadlines from the scheduled list can be processed.");
            }
+    }
+
+    public void addNewTaskDependencies(Task mainTask,Set<Task> dependencies){
+        dependentTasks.putIfAbsent(mainTask,new HashSet<>());
+        dependentTasks.get(mainTask).addAll(dependencies);
     }
 }

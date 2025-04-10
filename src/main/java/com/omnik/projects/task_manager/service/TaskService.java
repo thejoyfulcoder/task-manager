@@ -1,5 +1,6 @@
 package com.omnik.projects.task_manager.service;
 
+import com.omnik.projects.task_manager.dto.request.DependencyTasksRequestDTO;
 import com.omnik.projects.task_manager.dto.request.TaskRequestDTO;
 import com.omnik.projects.task_manager.dto.response.ApiResponseDTO;
 import com.omnik.projects.task_manager.enums.TaskStatus;
@@ -21,4 +22,6 @@ public interface TaskService {
     ApiResponseDTO<?> processTask(String requesterUsername, String taskName, TaskStatus status);
 
     ApiResponseDTO<?> markCompleted(String requesterUsername, String taskName);
+
+    ApiResponseDTO<?> addDependencyTasks(String requesterUsername, String taskName, DependencyTasksRequestDTO dependencyTasks);
 }
